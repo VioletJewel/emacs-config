@@ -1,4 +1,5 @@
 
+
 (setq inhibit-startup-message t)
 
 (scroll-bar-mode -1)    ;; Disable visible scrollbar
@@ -156,12 +157,18 @@
 
 (use-package magit)
 
-(use-package lsp-mode
+(use-package lsp-mode :ensure t
   :init
   (setq lsp-keymap-prefix "C-c l")
   :hook
   (lsp-mode . lsp-enable-which-key-integration)
   :commands lsp)
+
+(use-package company :ensure t
+  :init
+  (setq company-idle-delay nil)
+  :bind
+  ("C-i" . 'company-indent-or-complete-common))
 
 (setq custom-file (concat user-emacs-directory "custom.el"))
 (when (file-exists-p custom-file) (load custom-file))
