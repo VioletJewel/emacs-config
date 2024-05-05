@@ -1,4 +1,77 @@
 
+;; (column-number-mode)
+;; (global-display-line-numbers-mode t)
+
+;; (dolist (mode '(org-mode-hook term-mode-hook shell-mode-hook eshell-mode-hook))
+;;   (add-hook mode (lambda () (display-line-numbers-mode 0))))
+
+(defun erc-next-buffer (&optional reverse)
+  (interactive)
+  (let* ((buffers (mapcar
+		   (lambda (x) (car x))
+		   (sort (mapcar
+			  (lambda (x) (cons x (downcase (replace-regexp-in-string "^#*" "" x))))
+			  (copy-list (erc-all-buffer-names)))
+			 (lambda (a b)
+			   (string< (cdr a) (cdr b))))))
+	 (active (buffer-name (current-buffer))))
+    (let* ((reordered (if reverse (reverse buffers) buffers))
+	   (m (member active reordered))
+	   (next (or (cadr m) (car reordered))))
+      (switch-to-buffer next))))
+
+(defun erc-prev-buffer ()
+  (interactive)
+  (erc-next-buffer t))
+
+
+;;; from evil
+
+(defmacro save-side-windows (&rest body)
+  (declare (indent defun) (debug (&rest form)))
+  (let ((sides (make-symbol "sidesvar")))
+    `(let ((,sides (and (functionp 'window-toggle-side-windows)
+                        (window-with-parameter 'window-side))))
+       (when ,sides
+         (window-toggle-side-windows))
+       (unwind-protect
+           (progn ,@body)
+         (when ,sides
+           (window-toggle-side-windows))))))
+
+(defun move-window (side)
+  (save-side-windows
+   (unless (one-window-p)
+     (save-excursion
+       (let ((w (window-state-get (selected-window))))
+	 (delete-window)
+	 (let ((wtree (window-state-get)))
+	   (delete-other-windows)
+	   (let ((subwin (selected-window))
+		 ;; NOTE: SIDE is new in Emacs 24
+		 (newwin (split-window nil nil side)))
+	     (window-state-put wtree subwin)
+	     (window-state-put w newwin)
+	     (select-window newwin)))))
+     (balance-windows))))
+
+(defun move-window-above ()
+  (interactive)
+  (move-window 'above))
+
+(defun move-window-below ()
+  (interactive)
+  (move-window 'below))
+
+(defun move-window-left ()
+  (interactive)
+  (move-window 'left))
+
+(defun move-window-right ()
+  (interactive)
+  (move-window 'right))
+
+
 (require 'package)
 
 (setq package-archives '(("melpa" . "https://melpa.org/packages/")
@@ -8,9 +81,9 @@
 (unless package-archive-contents
   (package-refresh-contents))
 
-;; ;; Initialize use-package on non-Linux platforms
-;; (unless (package-installed-p 'use-package)
-;;   (package-install 'use-package))
+;; Initialize use-package on non-Linux platforms
+(unless (package-installed-p 'use-package)
+  (package-install 'use-package))
 
 (require 'use-package)
 (setq use-package-always-ensure t)
@@ -90,9 +163,11 @@
 (use-package znc
   :after erc)
 
-(use-package slime
-  :config
-  (setq inferior-lisp-program "sbcl"))
+;; (use-package slime
+;;   :config
+;;   (setq inferior-lisp-program "sbcl"))
+
+(use-package sly)
 
 (use-package lua-mode)
 
@@ -106,9 +181,9 @@
   ("C-=" . 'er/expand-region)
   ("C--" . 'er/contract-region))
 
-(use-package org
-  :init
-  (setq org-directory (concat user-emacs-directory "org")))
+;; (use-package org
+;;   :init
+;;   (setq org-directory (concat user-emacs-directory "org")))
 
 (use-package magit)
 
@@ -127,4 +202,5 @@
   :bind
   ("C-i" . 'company-indent-or-complete-common))
 
+(setq custom-file (concat user-emacs-directory "custom.el"))
 (when (file-exists-p custom-file) (load custom-file))
